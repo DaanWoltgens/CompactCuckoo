@@ -133,7 +133,7 @@ class ClearyCuckooBucketed: HashTable{
     private:
         //Constant Vars
         const static int HS = 59;       //HashSize
-        int MAXLOOPS = 25;
+        int MAXLOOPS = 100;
         int MAXREHASHES = 30;
 
         const int ENTRYSIZE2 = 64;
@@ -271,6 +271,8 @@ class ClearyCuckooBucketed: HashTable{
             //Start the iteration
             int c = 0;
 
+            bool is_full = false;
+
             //printf("%i: \t\t\tEntering Loop %i\n", getThreadID(), MAXLOOPS);
             while (c < MAXLOOPS) {
                 //Get the add/rem of k
@@ -289,9 +291,11 @@ class ClearyCuckooBucketed: HashTable{
                 if (load == Bs) {
                     bAdd = (addtype) (RHASH(HFSIZE_BUCKET, 0, rem) % Bs); //select some location within the table
                     //printf("%i: \t\t\tRandom Add at %" PRIu32 "\n", getThreadID(), bAdd);
+                    is_full = true;
                 }
                 else {
                     bAdd = load;
+                    is_full = false;
                 }
 
                 ClearyCuckooEntryCompact<addtype, remtype> entry(rem, hash, true, tile_sz, 0, false );
@@ -313,21 +317,23 @@ class ClearyCuckooBucketed: HashTable{
 
                 }
 
-                //Otherwise rebuild the original key
-                hashtype h_old = reformKey(add, temp, AS);
-                keytype old_key = x;
-                x = RHASH_INVERSE(HFSIZE_BUCKET, oldhash, h_old);
-                if (old_key == x) {
-                    return FOUND;
+                //Otherwise rebuild the original key, unless the bucket was originally full. In that case, replace the evicted element in the current bucket.
+                if (is_full) {
+                    hashtype h_old = reformKey(add, temp, AS);
+                    keytype old_key = x;
+                    x = RHASH_INVERSE(HFSIZE_BUCKET, oldhash, h_old);
+                    if (old_key == x) {
+                        return FOUND;
+                    }
+
+                    //printf("%i: \t\t\tRebuilt key:%" PRIu64 "\n", getThreadID(), x);
+
+
+                    //Hash with the next hash value
+                    hash = getNextHash(hs, oldhash);
+
+                    c++;
                 }
-
-                //printf("%i: \t\t\tRebuilt key:%" PRIu64 "\n", getThreadID(), x);
-
-
-                //Hash with the next hash value
-                hash = getNextHash(hs, oldhash);
-
-                c++;
             }
             //printf("%i: \t\tInsert Fail\n", getThreadID());
             return FAILED;
@@ -400,7 +406,7 @@ class ClearyCuckooBucketed: HashTable{
                     hashtype h = reformKey(i, rem, AS);
                     keytype k = RHASH_INVERSE(HFSIZE_BUCKET, label, h);
 
-                    printf("|%-10i|%-16" PRIu64 "|%-6i|%-20" PRIu64 "|%-6i|\n", j, T[real_add].getR(subIndex), T[real_add].getO(subIndex), k, T[real_add].getH(subIndex));
+                    printf("|%-10i|%-16" PRIl64 "|%-6i|%-20" PRIl64 "|%-6i|\n", j, T[real_add].getR(subIndex), T[real_add].getO(subIndex), k, T[real_add].getH(subIndex));
                 }
             }
 
@@ -684,7 +690,7 @@ void fillClearyCuckooBucketed(int N, uint64_cu* vals, ClearyCuckooBucketed<tile_
 {
 #ifdef GPUCODE
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x;
+    int stride = blockDim.x * gridDim.x;
 #else
     int index = id;
     int stride = s;
@@ -792,7 +798,7 @@ GPUHEADER_G
 void lookupClearyCuckooBucketed(int N, int start, int end, uint64_cu* vals, ClearyCuckooBucketed<tile_sz>* H, int id = 0, int s = 1) {
 #ifdef GPUCODE
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x;
+    int stride = blockDim.x * gridDim.x;
 #else
     int index = id;
     int stride = s;
@@ -817,7 +823,7 @@ GPUHEADER_G
 void dupCheckClearyCuckooBucketed(int N, uint64_cu* vals, ClearyCuckooBucketed<tile_sz>* H, addtype begin = 0)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x;
+    int stride = blockDim.x * gridDim.x;
 
     int max = calcBlockSize(N, H->getBucketSize());
 

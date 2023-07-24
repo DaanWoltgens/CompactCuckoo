@@ -1,6 +1,8 @@
 #include <cmath>
 #include <inttypes.h>
 
+# define PRIl64		"llu"
+
 #ifndef NUMGEN
 #define NUMGEN
 #include "numbergenerators.cu"
@@ -25,7 +27,7 @@ void numGenCollisionTest(int N, int H, int percentage, int depth) {
     
     printf("----------------------------------------------------------------\n");
     for (int i = 0; i < tablesize; i++) {
-        printf("|%-10i|%-20" PRIu64 "|", i, list[i]);
+        printf("|%-10i|%-20" PRIl64 "|", i, list[i]);
         for (int h = 0; h < H; h++) {
             printf("%-16" PRIu32 "|", getAdd(RHASH(HFSIZE, h, list[i]), N));
         }
@@ -47,7 +49,7 @@ void numGenNormalTest(int N) {
 
     printf("----------------------------------------------------------------\n");
     for (int i = 0; i < tablesize; i++) {
-        printf("|%-10i|%-20" PRIu64 "|", i, list[i]);
+        printf("|%-10i|%-20" PRIl64 "|", i, list[i]);
     }
     printf("------------------------------------------------------------\n");
 

@@ -563,7 +563,7 @@ class Cleary : public HashTable{
             printf("----------------------------------------------------------------\n");
             for(int i=0; i<tablesize; i++){
                 if(true){
-                    printf("|%-10i|%-16" PRIu64 "|%-6i|%-6i|%-6i|%-6i|%-6i|\n", i, T[i].getR(), T[i].getC(), T[i].getV(), T[i].getO(), T[i].getA(), T[i].getL());
+                    printf("|%-10i|%-16" PRIl64 "|%-6i|%-6i|%-6i|%-6i|%-6i|\n", i, T[i].getR(), T[i].getC(), T[i].getV(), T[i].getO(), T[i].getA(), T[i].getL());
                 }
             }
             printf("----------------------------------------------------------------\n");
@@ -629,7 +629,7 @@ GPUHEADER_G
 void lookupCleary(int N, int start, int end, uint64_cu* vals, Cleary* H, int id = 0, int s = 1) {
 #ifdef GPUCODE
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x;
+    int stride = blockDim.x * gridDim.x;
 #else
     int index = id;
     int stride = s;

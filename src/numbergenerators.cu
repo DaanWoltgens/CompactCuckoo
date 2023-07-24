@@ -4,6 +4,8 @@
 #include <curand_kernel.h>
 #include <inttypes.h>
 
+# define PRIl64		"llu"
+
 #ifndef MAIN
 #define MAIN
 #include "main.h"
@@ -51,7 +53,7 @@ uint64_cu* generateRandomSet(int size, long long int max=std::pow(2, DATASIZE)) 
     std::unordered_set<uint64_cu> insertedSet;
 
     int i = 0;
-    while (insertedSet.size() != size) {
+    while ((int) insertedSet.size() != size) {
         uint64_cu rand = dist(e2_ng);
         if (!(insertedSet.find(rand) != insertedSet.end())) {
             insertedSet.insert(rand);
@@ -97,7 +99,7 @@ uint64_cu* generateNormalSet(int size) {
     std::unordered_set<uint64_cu> insertedSet;
 
     int i = 0;
-    while (insertedSet.size() != size) {
+    while ((int) insertedSet.size() != size) {
         uint64_cu rand = std::round(dist(e2_ng));
         if (!(insertedSet.find(rand) != insertedSet.end())) {
             insertedSet.insert(rand);
@@ -280,7 +282,7 @@ uint64_cu* generateCollisionSet(int N, int AS, int H, int* hs, int percentage, i
             //printf("OuterLoop: %i\n", outerLoop);
             //Generate the Second value set
             for (int i = 0; i < fullSet - halfSet; i++) {
-                uint64_cu add;
+                uint64_cu add = 0;
                 if (i % depth == 0) {
                     //Select a random index and get the address
                     int r = index(e2_ng);
@@ -376,7 +378,7 @@ uint64_cu* readCSV(std::string filename, int* setsize = nullptr) {
     for (uint64_cu i : vec) {
         res[j++] = i;
         if (j < 10) {
-            printf("%" PRIu64 ", ", i);
+            printf("%llu, ", i);
         }
     }
     printf("...\n");

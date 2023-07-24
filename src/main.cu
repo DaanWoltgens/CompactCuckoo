@@ -159,7 +159,7 @@ int main(int argc, char* argv[])
         else if (strcmp(argv[2], "NUMGEN") == 0) {
             if (argc < 7) {
                 printf("Not Enough Arguments Passed\n");
-                printf("Required: SIZE, NUM_HASHES, PERCENTAGE, DEPTH\n");
+                printf("Required: , NUM_HASHES, PERCENTAGE, DEPTH\n");
                 return 0;
             }
 
@@ -249,7 +249,7 @@ int main(int argc, char* argv[])
     else if (strcmp(argv[1], "readInput") == 0) {
         uint64_cu* list = readCSV(argv[2]);
 
-        printf("Elmt %i: %" PRIu64 "\n", std::stoi(argv[3]), list[std::stoi(argv[3])]);
+        printf("Elmt %i: %" PRIl64 "\n", std::stoi(argv[3]), list[std::stoi(argv[3])]);
 
 #ifdef GPUCODE
         gpuErrchk(cudaFree(list));
@@ -278,7 +278,7 @@ int main(int argc, char* argv[])
 
         for (int i = 0; i < 10; i++) {
             uint64_cu h = RHASH(hashsize, i, x);
-            printf("Orignal: %" PRIu64 " HASHED: %" PRIu64 " INVERSE: %" PRIu64 "\n", x, h, RHASH_INVERSE(hashsize, i, h));
+            printf("Orignal: %" PRIl64 " HASHED: %" PRIl64 " INVERSE: %" PRIl64 "\n", x, h, RHASH_INVERSE(hashsize, i, h));
         }
     }
 

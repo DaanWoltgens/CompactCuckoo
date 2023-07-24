@@ -34,6 +34,24 @@ inline __host__ __device__ uint64_cu xor_shft2_58(const uint64_cu x, uint8_t a, 
 	return y;
 }
 
+// Bit left shift function for 50 bits.
+inline __host__ __device__ uint64_cu lshft_50(const uint64_cu x, uint8_t i) {
+	uint64_cu y = (x << i);
+	return y & MASK(50);
+}
+
+// Multiplication modulo 2^50.
+inline __host__ __device__ uint64_cu mult_50(const uint64_cu x, uint64_cu a) {
+	return ((x * a) & MASK(50));
+}
+
+// XOR two times bit shift function for 50 bits.
+inline __host__ __device__ uint64_cu xor_shft2_50(const uint64_cu x, uint8_t a, uint8_t b) {
+	uint64_cu y = (x ^ lshft_50(x,a));
+	y = (y ^ rshft(y,b));
+	return y;
+}
+
 inline __host__ __device__ nodetype RHASH64(uint8_t id, nodetype node) {
 	nodetype node1 = node;
 	switch (id) {
@@ -1630,6 +1648,211 @@ inline __host__ __device__ nodetype RHASH64_INVERSE(uint8_t id, nodetype node) {
 	return node1;
 }
 
+/* 50 bits */
+
+inline __host__ __device__ nodetype RHASH50(uint8_t id, nodetype node) {
+	nodetype node1 = node;
+	switch (id) {
+		case 0:
+			node1 = xor_shft2_50(node1, 14, 36);
+			node1 = xor_shft2_50(node1, 30, 20);
+			node1 = mult_50(node1, 0x346d5269d6a45L);
+			node1 ^= rshft(node1, 39);
+			node1 ^= rshft(node1, 31);
+			node1 ^= rshft(node1, 23);
+			node1 = mult_50(node1, 0x36d3c2b4804a9L);
+			node1 ^= rshft(node1, 28);
+			break;
+		case 1:
+			node1 = xor_shft2_50(node1, 10, 40);
+			node1 = xor_shft2_50(node1, 35, 15);
+			node1 = mult_50(node1, 0x3866c0692e5e5L);
+			node1 ^= rshft(node1, 40);
+			node1 ^= rshft(node1, 34);
+			node1 ^= rshft(node1, 19);
+			node1 = mult_50(node1, 0x39838add4d38fL);
+			node1 ^= rshft(node1, 26);
+			break;
+		case 2:
+			node1 = xor_shft2_50(node1, 21, 29);
+			node1 = xor_shft2_50(node1, 33, 17);
+			node1 = mult_50(node1, 0x3a57879143129L);
+			node1 ^= rshft(node1, 44);
+			node1 ^= rshft(node1, 30);
+			node1 ^= rshft(node1, 15);
+			node1 = mult_50(node1, 0x3afb7bb024c47L);
+			node1 ^= rshft(node1, 30);
+			break;
+		case 3:
+			node1 = xor_shft2_50(node1, 13, 37);
+			node1 = xor_shft2_50(node1, 14, 36);
+			node1 = mult_50(node1, 0x3b7e13a202e41L);
+			node1 ^= rshft(node1, 39);
+			node1 ^= rshft(node1, 33);
+			node1 ^= rshft(node1, 25);
+			node1 = mult_50(node1, 0x3be88e9173fb7L);
+			node1 ^= rshft(node1, 28);
+			break;
+	}
+	return node1;
+}
+
+// Inverse hash functions.
+inline __host__ __device__ nodetype RHASH50_INVERSE(uint8_t id, nodetype node) {
+	nodetype node1 = node;
+	nodetype node2;
+	switch (id) {
+		case 0:
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 28));
+			node2 = (node1 ^ rshft(node2, 28));
+			node1 = node2;
+			node1 = mult_50(node1, 0xf36a4076df99L);
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 39));
+			node2 = (node1 ^ rshft(node2, 39));
+			node1 = node2;
+			node1 = (node2 ^ rshft(node1, 31));
+			node1 = (node2 ^ rshft(node1, 31));
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 23));
+			node2 = (node1 ^ rshft(node2, 23));
+			node2 = (node1 ^ rshft(node2, 23));
+			node1 = node2;
+			node1 = mult_50(node1, 0x1372f645e188dL);
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 20));
+			node2 = (node1 ^ rshft(node2, 20));
+			node2 = (node1 ^ rshft(node2, 20));
+			node1 = node2;
+			node1 = (node2 ^ lshft_50(node1, 30));
+			node1 = (node2 ^ lshft_50(node1, 30));
+			node1 &= MASK(50);
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 36));
+			node2 = (node1 ^ rshft(node2, 36));
+			node1 = node2;
+			node1 = (node2 ^ lshft_50(node1, 14));
+			node1 = (node2 ^ lshft_50(node1, 14));
+			node1 = (node2 ^ lshft_50(node1, 14));
+			node1 = (node2 ^ lshft_50(node1, 14));
+			node1 &= MASK(50);
+			break;
+		case 1:
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 26));
+			node2 = (node1 ^ rshft(node2, 26));
+			node1 = node2;
+			node1 = mult_50(node1, 0x3f5a2033ceb6fL);
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 40));
+			node2 = (node1 ^ rshft(node2, 40));
+			node1 = node2;
+			node1 = (node2 ^ rshft(node1, 34));
+			node1 = (node2 ^ rshft(node1, 34));
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 19));
+			node2 = (node1 ^ rshft(node2, 19));
+			node2 = (node1 ^ rshft(node2, 19));
+			node2 = (node1 ^ rshft(node2, 19));
+			node1 = node2;
+			node1 = mult_50(node1, 0x3787307d9cfedL);
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 15));
+			node2 = (node1 ^ rshft(node2, 15));
+			node2 = (node1 ^ rshft(node2, 15));
+			node2 = (node1 ^ rshft(node2, 15));
+			node1 = node2;
+			node1 = (node2 ^ lshft_50(node1, 35));
+			node1 = (node2 ^ lshft_50(node1, 35));
+			node1 &= MASK(50);
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 40));
+			node2 = (node1 ^ rshft(node2, 40));
+			node1 = node2;
+			node1 = (node2 ^ lshft_50(node1, 10));
+			node1 = (node2 ^ lshft_50(node1, 10));
+			node1 = (node2 ^ lshft_50(node1, 10));
+			node1 = (node2 ^ lshft_50(node1, 10));
+			node1 = (node2 ^ lshft_50(node1, 10));
+			node1 &= MASK(50);
+			break;
+		case 2:
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 30));
+			node2 = (node1 ^ rshft(node2, 30));
+			node1 = node2;
+			node1 = mult_50(node1, 0x365738c219d77L);
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 44));
+			node2 = (node1 ^ rshft(node2, 44));
+			node1 = node2;
+			node1 = (node2 ^ rshft(node1, 30));
+			node1 = (node2 ^ rshft(node1, 30));
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 15));
+			node2 = (node1 ^ rshft(node2, 15));
+			node2 = (node1 ^ rshft(node2, 15));
+			node2 = (node1 ^ rshft(node2, 15));
+			node1 = node2;
+			node1 = mult_50(node1, 0x2200650b4fb19L);
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 17));
+			node2 = (node1 ^ rshft(node2, 17));
+			node2 = (node1 ^ rshft(node2, 17));
+			node2 = (node1 ^ rshft(node2, 17));
+			node1 = node2;
+			node1 = (node2 ^ lshft_50(node1, 33));
+			node1 = (node2 ^ lshft_50(node1, 33));
+			node1 &= MASK(50);
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 29));
+			node2 = (node1 ^ rshft(node2, 29));
+			node1 = node2;
+			node1 = (node2 ^ lshft_50(node1, 21));
+			node1 = (node2 ^ lshft_50(node1, 21));
+			node1 = (node2 ^ lshft_50(node1, 21));
+			node1 &= MASK(50);
+			break;
+		case 3:
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 28));
+			node2 = (node1 ^ rshft(node2, 28));
+			node1 = node2;
+			node1 = mult_50(node1, 0x02b3c3bda8ce07L);
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 39));
+			node2 = (node1 ^ rshft(node2, 39));
+			node1 = node2;
+			node1 = (node2 ^ rshft(node1, 33));
+			node1 = (node2 ^ rshft(node1, 33));
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 25));
+			node2 = (node1 ^ rshft(node2, 25));
+			node1 = node2;
+			node1 = mult_50(node1, 0x253050b96e1c1L);
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 36));
+			node2 = (node1 ^ rshft(node2, 36));
+			node1 = node2;
+			node1 = (node2 ^ lshft_50(node1, 14));
+			node1 = (node2 ^ lshft_50(node1, 14));
+			node1 = (node2 ^ lshft_50(node1, 14));
+			node1 = (node2 ^ lshft_50(node1, 14));
+			node1 &= MASK(50);
+			node2 = node1;
+			node2 = (node1 ^ rshft(node2, 37));
+			node2 = (node1 ^ rshft(node2, 37));
+			node1 = node2;
+			node1 = (node2 ^ lshft_50(node1, 13));
+			node1 = (node2 ^ lshft_50(node1, 13));
+			node1 = (node2 ^ lshft_50(node1, 13));
+			node1 = (node2 ^ lshft_50(node1, 13));
+			node1 &= MASK(50);
+			break;
+	}
+	return node1;
+}
 
 
 /**************************************************************************************************************************************************************************************************************************************
@@ -2595,7 +2818,7 @@ inline __host__ __device__ nodetype RHASH(int SIZE, uint8_t id, nodetype node) {
 	case 28:
 		return RHASH28(id, node);
 	default:
-		return 0;
+		return RHASH50(id, node);
 	}
 }
 
@@ -2609,6 +2832,6 @@ inline __host__ __device__ nodetype RHASH_INVERSE(int SIZE, uint8_t id, nodetype
 	case 28:
 		return RHASH28_INVERSE(id, node);
 	default:
-		return 0;
+		return RHASH50_INVERSE(id, node);
 	}
 }

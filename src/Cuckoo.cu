@@ -55,7 +55,7 @@ class Cuckoo : HashTable {
 private:
     //Constant Vars
     const static int HS = 59;       //HashSize
-    int MAXLOOPS = 25;
+    int MAXLOOPS = 100;
     int MAXREHASHES = 30;
 
     //Vars at Construction
@@ -281,7 +281,7 @@ private:
         printf("Tablesize %i\n", tablesize);
         for (int i = 0; i < tablesize; i++) {
             if (T[i].getO()) {
-                printf("|%-10i|%-16" PRIu64 "|%-6i|%-6i|\n", i, RHASH_INVERSE(HFSIZE, T[i].getH(), T[i].getR()), T[i].getO(), T[i].getH());
+                printf("|%-10i|%-16" PRIl64 "|%-6i|%-6i|\n", i, RHASH_INVERSE(HFSIZE, T[i].getH(), T[i].getR()), T[i].getO(), T[i].getH());
             }
         }
         printf("------------------------------------------------------------\n");
@@ -551,7 +551,7 @@ void fillCuckoo(int N, uint64_cu* vals, Cuckoo* H, SpinBarrier* barrier, int* fa
 {
 #ifdef GPUCODE
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x;
+    int stride = blockDim.x * gridDim.x;
 #else
     int index = id;
     int stride = s;
@@ -681,7 +681,7 @@ GPUHEADER_G
 void lookupCuckoo(int N, int start, int end, uint64_cu * vals, Cuckoo * H, int id = 0, int s = 1) {
 #ifdef GPUCODE
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x;
+    int stride = blockDim.x * gridDim.x;
 #else
     int index = id;
     int stride = s;
@@ -698,7 +698,7 @@ void dupCheckCuckoo(int N, uint64_cu * vals, Cuckoo * H, addtype begin = 0)
 
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x;
+    int stride = blockDim.x * gridDim.x;
 
     //printf("Thread %i Starting\n", getThreadID());
     for (int i = index + begin; i < N + begin; i += stride) {

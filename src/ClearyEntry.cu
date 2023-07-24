@@ -218,7 +218,7 @@ public:
     GPUHEADER
     void print() {
 #ifdef GPUCODE
-        printf("%" PRIu64  "\n", TableEntry<ADD, REM>::val);
+        printf("%" PRIl64  "\n", TableEntry<ADD, REM>::val);
 #else
         printf("%" PRIu64  "\n", TableEntry<ADD, REM>::val.load());
 #endif

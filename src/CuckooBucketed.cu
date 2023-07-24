@@ -135,7 +135,7 @@ class CuckooBucketed: HashTable{
     private:
         //Constant Vars
         const static int HS = 59;       //HashSize
-        int MAXLOOPS = 25;
+        int MAXLOOPS = 100;
         int MAXREHASHES = 30;
 
         //Vars at Construction
@@ -256,9 +256,9 @@ class CuckooBucketed: HashTable{
          **/
         GPUHEADER_D
             result insertIntoTable(keytype k, ClearyCuckooEntry<addtype, remtype>* T, int* hs, cg::thread_block_tile<tile_sz> tile, int depth=0){
-            if (tile.thread_rank() == 0) {
-                //printf("%i: \t\tInsert into Table %" PRIu64 "\n", getThreadID(), k);
-            }
+            // if (tile.thread_rank() == 0) {
+            //     //printf("%i: \t\tInsert into Table %" PRIu64 "\n", getThreadID(), k);
+            // }
             keytype x = k;
             int hash = hs[0];
 
@@ -271,34 +271,40 @@ class CuckooBucketed: HashTable{
             //Start the iteration
             int c = 0;
 
-            if (tile.thread_rank() == 0) {
-                //printf("%i: \t\t\tEntering Loop %i\n", getThreadID(), MAXLOOPS);
-            }
+            // if (tile.thread_rank() == 0) {
+            //     //printf("%i: \t\t\tEntering Loop %i\n", getThreadID(), MAXLOOPS);
+            // }
+            bool is_full = false;
+
             while (c < MAXLOOPS) {
                 //Get the add/rem of k
                 hashtype hashed1 = RHASH(HFSIZE_BUCKET, hash, x);
                 addtype add = getAdd(hashed1, AS);
 
                 auto cur_bucket = CuckooBucket<tile_sz>(T, tile, add, Bs);
+                //printf("size bucket: %lu\n", sizeof(cur_bucket)*tile_sz);
                 auto load = cur_bucket.compute_load();
 
                 //printf("%i: \t\t\tLoad at %" PRIu32 " : %i\n", getThreadID(), add, load);
 
                 addtype bAdd;
 
+                ClearyCuckooEntry<addtype, remtype> entry(x, hash, true, false);
+
                 if (load == Bs) {
                     bAdd = (addtype) (RHASH(HFSIZE_BUCKET, 0, x) % Bs); //select some location within the table
                     //printf("%i: \t\t\tRandom Add at %" PRIu32 "\n", getThreadID(), bAdd);
+                    is_full = true;
                 }
                 else {
                     bAdd = load;
+                    is_full = false;
                 }
 
                 if (tile.thread_rank() == 0) {
                     //printf("%i: \t\t\tadd:%" PRIu32 " bAdd:%i\n", getThreadID(), add, bAdd);
                 }
 
-                ClearyCuckooEntry<addtype, remtype> entry(x, hash, true, false);
                 entry = cur_bucket.exch_at_location(entry, bAdd);
 
 
@@ -316,19 +322,21 @@ class CuckooBucketed: HashTable{
                     
                 }
 
-                //Otherwise rebuild the original key
-                if (x == temp) {
-                    return FOUND;
+                //Otherwise rebuild the original key, unless the bucket was originally full. In that case, replace the evicted element in the current bucket.
+                if (is_full) {
+                    if (x == temp) {
+                        return FOUND;
+                    }
+                    x = temp;
+
+                    //printf("%i: \t\t\tRebuilt key:%" PRIu64 "\n", getThreadID(), x);
+
+
+                    //Hash with the next hash value
+                    hash = getNextHash(hs, oldhash);
+
+                    c++;
                 }
-                x = temp;
-
-                //printf("%i: \t\t\tRebuilt key:%" PRIu64 "\n", getThreadID(), x);
-
-
-                //Hash with the next hash value
-                hash = getNextHash(hs, oldhash);
-
-                c++;
             }
             //printf("%i: \t\tInsert Fail\n", getThreadID());
             return FAILED;
@@ -390,7 +398,7 @@ class CuckooBucketed: HashTable{
                     keytype k = T[i*Bs + j].getR();
                     int label = T[i*Bs + j].getH();
 
-                    printf("|%-10i|%-16" PRIu64 "|%-6i|%-20" PRIu64 "|%-6i|\n", j, T[i*Bs + j].getR(), T[i*Bs + j].getO(), k, T[i*Bs + j].getH());
+                    printf("|%-10i|%-16" PRIl64 "|%-6i|%-20" PRIl64 "|%-6i|\n", j, T[i*Bs + j].getR(), T[i*Bs + j].getO(), k, T[i*Bs + j].getH());
                 }
             }
 
@@ -411,7 +419,7 @@ class CuckooBucketed: HashTable{
                 //printf("!----------WARNING: TABLE TOO SMALL FOR TILE SIZE----------!\n");
             }
             //printf("Constructor\n");
-            //printf("AS:%i tile_sz:%i, log2(tile_sz):%i", AS, tile_sz, (int) log2(tile_sz));
+            printf("AS:%i tile_sz:%i, log2(tile_sz):%i", AS, tile_sz, (int) log2(tile_sz));
 
             tablesize = B * Bs;
 
@@ -425,7 +433,7 @@ class CuckooBucketed: HashTable{
             gpuErrchk(cudaMallocManaged(&T, tablesize * sizeof(ClearyCuckooEntry<addtype, remtype>)));
             gpuErrchk(cudaMallocManaged(&hashlist, hn * sizeof(int)));
             gpuErrchk(cudaMallocManaged((void**)&rehashQueue, sizeof(SharedQueue<int>)));
-            gpuErrchk(cudaMallocManaged(&bucketIndex, Bs * sizeof(int)));
+            //gpuErrchk(cudaMallocManaged(&bucketIndex, Bs * sizeof(int)));
 #else
             T = new ClearyCuckooEntry<addtype, remtype>[numBuckets*Bs + bucketSize];
             hashlist = new int[hn];
@@ -438,7 +446,8 @@ class CuckooBucketed: HashTable{
                     //printf("\t\tEntry %i %i\n",i, j);
                     new (&T[i*Bs + j]) ClearyCuckooEntry<addtype, remtype>();
                 }
-                bucketIndex[i] = 0;
+                // Possibly out-of-bounds:
+                //bucketIndex[i] = 0;
             }
 
             //Default MAXLOOPS Value
@@ -464,12 +473,12 @@ class CuckooBucketed: HashTable{
             #ifdef GPUCODE
             gpuErrchk(cudaFree(T));
             gpuErrchk(cudaFree(hashlist));
-            gpuErrchk(cudaFree(bucketIndex));
+            //gpuErrchk(cudaFree(bucketIndex));
 
             #else
             delete[] T;
             delete[] hashlist;
-            delete[] bucketIndex;
+            //delete[] bucketIndex;
             #endif
         }
 
@@ -675,7 +684,7 @@ void fillCuckooBucketed(int N, uint64_cu* vals, CuckooBucketed<tile_sz>* H, Spin
 {
 #ifdef GPUCODE
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x;
+    int stride = blockDim.x * gridDim.x;
 #else
     int index = id;
     int stride = s;
@@ -685,7 +694,7 @@ void fillCuckooBucketed(int N, uint64_cu* vals, CuckooBucketed<tile_sz>* H, Spin
     int localCounter = 0;
 
     //printf("Thread %i Starting - max %i\n", getThreadID(), max);
-    for (int i = index + begin; i < max + begin; i += stride) {
+    for (int i = index + begin; i < max; i += stride) {
 
         bool realVal = false;
         keytype ins = 0;
@@ -707,10 +716,10 @@ void fillCuckooBucketed(int N, uint64_cu* vals, CuckooBucketed<tile_sz>* H, Spin
         
     }
 
-    if (count != nullptr) {
-        //printf("Adding Count\n");
-        atomicAdd(count, localCounter);
-    }
+    // if (count != nullptr) {
+    //     //printf("Adding Count\n");
+    //     atomicAdd(count, localCounter);
+    // }
 
     //printf("Done\n");
 }
@@ -723,15 +732,15 @@ GPUHEADER_G
 void fillCuckooBucketed(int N, uint64_cu* vals, CuckooBucketed<tile_sz> * H, addtype* occupancy, int* failFlag, int id = 0, int s = 1)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x;
+    int stride = blockDim.x * gridDim.x;
 
 
     int max = calcBlockSize(N, H->getBucketSize());
 
     for (int i = index; i < max; i += stride) {
-        if (failFlag[0]) {
-            break;
-        }
+        // if (failFlag[0]) {
+        //     break;
+        // }
 
         bool realVal = false;
         keytype ins = 0;
@@ -740,12 +749,13 @@ void fillCuckooBucketed(int N, uint64_cu* vals, CuckooBucketed<tile_sz> * H, add
             ins = vals[i];
         }
 
-        if (H->insert(ins, realVal) == FAILED) {
-            if (realVal) {
-                atomicCAS(&(failFlag[0]), 0, 1);
-            }
-        }
-        atomicAdd(&occupancy[0], 1);
+        H->insert(ins, realVal);
+        // if (H->insert(ins, realVal) == FAILED) {
+        //     if (realVal) {
+        //         atomicCAS(&(failFlag[0]), 0, 1);
+        //     }
+        // }
+        // atomicAdd(&occupancy[0], 1);
     }
 }
 #endif
@@ -757,7 +767,7 @@ void checkCuckooBucketed(int N, uint64_cu* vals, CuckooBucketed<tile_sz>* H, boo
 {
 #ifdef GPUCODE
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x;
+    int stride = blockDim.x * gridDim.x;
 #else
     int index = id;
     int stride = s;
@@ -785,7 +795,7 @@ GPUHEADER_G
 void lookupCuckooBucketed(int N, int start, int end, uint64_cu* vals, CuckooBucketed<tile_sz>* H, int id = 0, int s = 1) {
 #ifdef GPUCODE
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x;
+    int stride = blockDim.x * gridDim.x;
 #else
     int index = id;
     int stride = s;
@@ -810,7 +820,7 @@ GPUHEADER_G
 void dupCheckCuckooBucketed(int N, uint64_cu* vals, CuckooBucketed<tile_sz>* H, addtype begin = 0)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x;
+    int stride = blockDim.x * gridDim.x;
 
     int max = calcBlockSize(N, H->getBucketSize());
 

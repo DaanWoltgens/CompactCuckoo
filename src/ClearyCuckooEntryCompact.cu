@@ -8,7 +8,7 @@
 #include "TableEntry.h"
 #endif
 
-#include <inttypes.h>
+//#include <inttypes.h>
 
 
 template <class ADD, class REM>
@@ -184,7 +184,7 @@ public:
     GPUHEADER
     void print() {
 #ifdef GPUCODE
-        printf("%" PRIu64  "\n", TableEntry<ADD, REM>::getValue());
+        printf("%" PRIl64  "\n", TableEntry<ADD, REM>::getValue());
 #else
         //printf("%" PRIu64  "\n", TableEntry<ADD, REM>::val.load());
 #endif

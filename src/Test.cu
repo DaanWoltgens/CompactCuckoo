@@ -446,7 +446,7 @@ void entryTest() {
     ClearyEntry<addtype, remtype> c{};
     c.setR(351629921636382);
     c.print();
-    printf("Entry After R %" PRIu64 "\n", c.getR());
+    printf("Entry After R %" PRIl64 "\n", c.getR());
 }
 
 
